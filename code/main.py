@@ -200,6 +200,11 @@ def recommendations(req: QueryRequest):
     return local_agent.get_flight_recommendations(req.user_query)
 
 
+@app.get("/query", tags=["flight"])
+def query_help():
+    return {"message": "Use POST /query with JSON body {\"user_query\": \"...\"} or visit /docs"}
+
+
 if __name__ == "__main__":
     agent_cli = FlightAgent()
     query = input("Enter your travel request: ")

@@ -90,6 +90,16 @@ airport_code = lookup.find_airport_code("San Francisco")
 print(f"Airport code: {airport_code}")  # Output: SFO
 ```
 
+### Quick API test
+
+Note: `/query` is a POST endpoint. You can test it using the Swagger UI at `/docs` or with curl:
+
+```bash
+curl -X POST http://127.0.0.1:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"user_query":"Find flights from San Jose to Dallas Jan 15"}'
+```
+
 ### Testing
 
 Run the test suite:
