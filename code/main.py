@@ -5,6 +5,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 from groq import Groq
 import logging
+from typing import Optional
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 # Load .env variables
 load_dotenv()
@@ -21,7 +24,16 @@ RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 class FlightAgent:
     def __init__(self):
         self.api_key = RAPIDAPI_KEY
-        self.groq = Groq(api_key=GROQ_API_KEY)
+        # Initialize Groq client if the API key is available. Don't raise on import.
+        try:
+            if GROQ_API_KEY:
+                self.groq = Groq(api_key=GROQ_API_KEY)
+            else:
+                self.groq = None
+                logger.warning("GROQ_API_KEY not set; Groq client disabled")
+        except Exception as e:
+            self.groq = None
+            logger.warning(f"Failed to initialize Groq client: {e}")
         self.sky_id_map = {
             "new york": "NYCA", "dallas": "DFWA", "paris": "PARI",
             "los angeles": "LAXA", "san francisco": "SFOA", "san jose": "SJCA"
@@ -134,10 +146,37 @@ class FlightAgent:
         }
 
 
+# Create a FastAPI app so `uvicorn code.main:app` can import it
+app = FastAPI(title="VoyAgent API")
+
+# Simple request model
+class QueryRequest(BaseModel):
+    user_query: Optional[str] = None
+
+
+# single agent instance for API use
+# Do not create a FlightAgent at import time to avoid side-effects (e.g., missing env vars)
+agent = None
+
+
+@app.get("/", tags=["health"])
+def root():
+    return {"status": "ok", "message": "VoyAgent API running"}
+
+
+@app.post("/recommendations", tags=["flight"] )
+def recommendations(req: QueryRequest):
+    if not req.user_query:
+        raise HTTPException(status_code=400, detail="`user_query` is required")
+    # create agent per-request to avoid import-time side effects; lightweight if Groq not configured
+    local_agent = FlightAgent()
+    return local_agent.get_flight_recommendations(req.user_query)
+
+
 if __name__ == "__main__":
-    agent = FlightAgent()
+    agent_cli = FlightAgent()
     query = input("Enter your travel request: ")
-    result = agent.get_flight_recommendations(query)
+    result = agent_cli.get_flight_recommendations(query)
 
     if "chatbot_response" in result:
         print("\n Chatbot Response:\n" + result["chatbot_response"])
