@@ -20,6 +20,7 @@ logger = logging.getLogger("flight_agent")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama3-70b-8192")
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
+USE_MOCK = os.getenv("USE_MOCK_DATA", "true").lower() == "true"
 
 class FlightAgent:
     def __init__(self):
@@ -170,6 +171,32 @@ def recommendations(req: QueryRequest):
         raise HTTPException(status_code=400, detail="`user_query` is required")
     # create agent per-request to avoid import-time side effects; lightweight if Groq not configured
     local_agent = FlightAgent()
+    # If mock mode is enabled, return a predictable static response so the app
+    # can be demoed without any external API keys.
+    if USE_MOCK:
+        mock_response = {
+            "extracted_input": {
+                "originCity": "San Jose",
+                "destinationCity": "Dallas",
+                "departureDate": "2026-01-15",
+                "returnDate": "2026-01-20",
+                "passengers": 1
+            },
+            "api_response": {
+                "flights": [
+                    {
+                        "airline": "DemoAir",
+                        "price": "$199",
+                        "departure": "2026-01-15T08:00:00",
+                        "arrival": "2026-01-15T12:00:00",
+                        "duration": "4h"
+                    }
+                ]
+            },
+            "chatbot_response": "Top result: DemoAir direct, $199. Departs 08:00, arrives 12:00."
+        }
+        return mock_response
+
     return local_agent.get_flight_recommendations(req.user_query)
 
 
