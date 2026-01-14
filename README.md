@@ -1,4 +1,4 @@
-# VoyAgent API - Intelligent Flight Search Agent
+# VoyAgent API - Intelligent Flight Search Agent (part of Voyagent's multi-modular system)
 
 An intelligent Python-based flight search system that understands natural language queries and finds the cheapest flights using multiple APIs and data sources.
 
